@@ -10,7 +10,7 @@ import { verify } from './jwt';
 // and it will hit /v2/registration once again.
 const DUMMY_TOKEN = 'DUMMY_TOKEN';
 
-export const filterByCompany = !!process.env.SHARED_DASHBOARD;
+export const filterByOrg = !!process.env.SHARED_DASHBOARD;
 export const deniedCompanies = (process.env.DENIED_COMPANY_TOKENS || '').split(',');
 export const deniedDevices = (process.env.DENIED_DEVICE_TOKENS || '').split(',');
 export const ddosBombCompanies = (process.env.DDOS_BOMB_COMPANY_TOKENS || '').split(',');
@@ -22,7 +22,7 @@ const check = (list, item) => list
 export const isDDosCompany = orgToken => check(ddosBombCompanies, orgToken);
 export const isDeniedCompany = orgToken => check(deniedCompanies, orgToken);
 export const isDeniedDevice = orgToken => check(deniedDevices, orgToken);
-export const isAdmin = orgToken => !!filterByCompany &
+export const isAdmin = orgToken => !!filterByOrg &&
   !!process.env.ADMIN_TOKEN &&
   orgToken === process.env.ADMIN_TOKEN;
 

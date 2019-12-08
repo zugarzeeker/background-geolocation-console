@@ -8,7 +8,7 @@ import 'colors';
 import opn from 'opn';
 
 import siteApi from './routes/site-api';
-import api from './routes/api-v2';
+import api from './routes/jwt-api';
 import tests from './routes/tests';
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -37,7 +37,7 @@ app.use(compress());
 app.use(bodyParser.json(parserLimits));
 app.use(bodyParser.raw(parserLimits));
 
-(async function () {
+(async () => {
   await initializeDatabase();
 
   app.use(siteApi);

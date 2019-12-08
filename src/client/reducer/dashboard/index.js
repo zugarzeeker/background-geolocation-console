@@ -407,7 +407,7 @@ export function doAddTestMarker (value: Object): AddTestMarkerAction {
 // Thunk Actions
 // ------------------------------------
 export function loadInitialData (id: string): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     const { dashboard: { hasData } } = getState();
     if (hasData) {
       console.error('extra call after everything is set up!');
@@ -429,7 +429,7 @@ export function loadInitialData (id: string): ThunkAction {
 }
 
 export function reload ({ loadUsers }: LoadParams = { loadUsers: true }): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setIsLoading(true));
     loadUsers && await dispatch(loadOrgTokens());
     await dispatch(autoselectOrInvalidateSelectedOrgToken());
@@ -444,7 +444,7 @@ export function reload ({ loadUsers }: LoadParams = { loadUsers: true }): ThunkA
 }
 
 export function deleteActiveDevice (deleteOptions: ?DeleteOptions): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     const { dashboard: { deviceId } } = getState();
     if (!deviceId) {
       return;
@@ -466,7 +466,7 @@ export function deleteActiveDevice (deleteOptions: ?DeleteOptions): ThunkAction 
 }
 
 export function loadOrgTokens (): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     const { dashboard: { orgTokenFromSearch } } = getState();
     const params = qs.stringify({
       company_token: orgTokenFromSearch,
@@ -486,7 +486,7 @@ export function loadOrgTokens (): ThunkAction {
 }
 
 export function loadDevices (): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     const { dashboard: { companyId, orgToken } } = getState();
     const params = qs.stringify({
       company_id: companyId,
@@ -508,7 +508,7 @@ export function loadDevices (): ThunkAction {
 }
 
 export function loadLocations (): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     const { deviceId, orgToken, companyId, startDate, endDate, maxMarkers } = getState().dashboard;
     GA.sendEvent('tracker', 'loadLocations', orgToken);
 
@@ -531,7 +531,7 @@ export function loadLocations (): ThunkAction {
 }
 
 export function loadCurrentLocation (): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     const { deviceId, companyId, company_token: orgToken } = getState().dashboard;
     if (deviceId) {
       const params = qs.stringify({
@@ -553,7 +553,7 @@ export function loadCurrentLocation (): ThunkAction {
 }
 
 export function changeStartDate (value: Date) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setStartDate(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { startDate: value });
     const { dashboard } = getState();
@@ -568,7 +568,7 @@ export function changeStartDate (value: Date) {
   };
 }
 export function changeEndDate (value: Date) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setEndDate(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { endDate: value });
     const { dashboard } = getState();
@@ -584,14 +584,14 @@ export function changeEndDate (value: Date) {
 }
 
 export function changeOrgToken (value: string) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setOrgToken(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { companyId: value });
     await dispatch(reload({ loadUsers: false }));
   };
 }
 export function changeDeviceId (value: string) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setDevice(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { deviceId: value });
     const { dashboard } = getState();
@@ -607,56 +607,56 @@ export function changeDeviceId (value: string) {
 }
 
 export function changeIsWatching (value: boolean) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setIsWatching(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { isWatching: value });
   };
 }
 
 export function changeShowMarkers (value: boolean) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowMarkers(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { showMarkers: value });
   };
 }
 
 export function changeEnableClustering (value: boolean) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setEnableClustering(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { enableClustering: value });
   };
 }
 
 export function changeShowPolyline (value: boolean) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowPolyline(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { showPolyline: value });
   };
 }
 
 export function changeShowGeofenceHits (value: boolean) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowGeofenceHits(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { showGeofenceHits: value });
   };
 }
 
 export function changeMaxMarkers (value: number) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setShowMaxMarkers(value));
     setSettings(getState().dashboard.orgTokenFromSearch, { maxMarkers: value });
   };
 }
 
 export function clickMarker (locationId: string) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setSelectedLocation(locationId));
     scrollToRowBus.emit({ locationId });
   };
 }
 
 export function changeActiveTab (tab: Tab) {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     await dispatch(setActiveTab(tab));
     setSettings(getState().dashboard.orgTokenFromSearch, { activeTab: tab });
     changeTabBus.emit({ tab });
@@ -664,7 +664,7 @@ export function changeActiveTab (tab: Tab) {
 }
 
 export function addTestMarker (value: Object): ThunkAction {
-  return async function (dispatch: Dispatch, getState: GetState): Promise<void> {
+  return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
     dispatch(doAddTestMarker(value));
   };
 }

@@ -7,11 +7,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const syncOptions = {
   logging: true,
 };
-
-/**
- * Init / create location table
- */
-export default async function initializeDatabase () {
+const initializeDatabase = async () => {
   Device.associate({ Location, Device, Company });
   Company.associate({ Location, Device, Company });
   Location.associate({ Location, Device, Company });
@@ -32,4 +28,6 @@ export default async function initializeDatabase () {
   } catch (err) {
     console.error('Unable to sync database:', err);
   }
-}
+};
+
+export default initializeDatabase;

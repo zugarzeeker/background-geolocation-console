@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import { Router } from 'express';
 import crypto from 'crypto';
 
@@ -6,6 +7,7 @@ import { getOrgs } from '../models/Org';
 import { isEncryptedRequest, decrypt } from '../libs/RNCrypto';
 import {
   AccessDeniedError,
+  filterByOrg,
   RegistrationRequiredError,
   checkAuth,
   isProduction,
@@ -23,10 +25,7 @@ import { sign } from '../libs/jwt';
 
 const router = new Router();
 
-// curl -v -X POST http://localhost:9000/v2/register \
-//  -d '{"company_token":"test","device_id":"test"}' \
-//  -H 'Content-Type: application/json'
-router.post('/register', async function (req, res) {
+router.post('/register', async (req, res) => {
   const {
     org,
     uuid,
@@ -37,7 +36,7 @@ router.post('/register', async function (req, res) {
   } = req.body;
 
   console.info(
-    'POST /register '.green,
+    'POST jwt:/register '.green,
     'org'.green, org,
     'uuid'.green, uuid,
     'model'.green, model,
@@ -79,12 +78,12 @@ router.post('/register', async function (req, res) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.message });
     }
-    console.error('/register', err);
+    console.error('jwt:/register', err);
     return res.status(500).send(!isProduction ? err : err.message);
   }
 });
 
-router.all('/refresh_token', checkAuth, async function (req, res) {
+router.all('/refresh_token', checkAuth, async (req, res) => {
   const { org, deviceId, model } = req.jwt;
   const jwtInfo = {
     org,
@@ -92,7 +91,7 @@ router.all('/refresh_token', checkAuth, async function (req, res) {
     model,
   };
   console.info(
-    'auth:refresh'.green,
+    'jwt:auth:refresh'.green,
     'org:name'.green, org,
     'device:id'.green, deviceId,
   );
@@ -109,44 +108,42 @@ router.all('/refresh_token', checkAuth, async function (req, res) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.message });
     }
-    console.error('/register', req.body, err);
+    console.error('jwt:/register', req.body, err);
     return res.status(500).send(!isProduction ? err : err.message);
   }
 });
 
-// curl -v http://localhost:9000/v2/company_tokens \
-//   -H 'Authorization: Bearer ey...Pg'
-//
-router.get('/company_tokens', checkAuth, async function (req, res) {
+router.get('/company_tokens', checkAuth, async (req, res) => {
   const { org } = req.jwt;
   try {
     const orgTokens = await getOrgs({ company_token: org });
     res.send(orgTokens);
   } catch (err) {
-    console.error('/company_tokens', err);
+    console.error('jwt:/company_tokens', err);
     res.status(500).send({ error: err.message });
   }
 });
 
-router.get('/devices', checkAuth, async function (req, res) {
+router.get('/devices', checkAuth, async (req, res) => {
   try {
     const { deviceId } = req.jwt;
-    const device = await getDevice({ id: deviceId });
-    const devices = await getDevices({
-      company_id: device.company_id,
-    });
+    const device = await getDevice({ id: +deviceId });
+    const where = filterByOrg
+      ? { company_id: device.company_id }
+      : {};
+    const devices = await getDevices(where);
     res.send(devices || []);
   } catch (err) {
-    console.error('/devices', err);
+    console.error('jwt:/devices', err);
     res.status(500).send({ error: err.message });
   }
 });
 
-router.delete('/devices/:id', checkAuth, async function (req, res) {
+router.delete('/devices/:id', checkAuth, async (req, res) => {
   const { deviceId } = req.jwt;
 
   console.info(
-    'devices:delete'.green,
+    'jwt:devices:delete'.green,
     'device:id'.green, deviceId,
     JSON.stringify(req.query)
   );
@@ -164,79 +161,84 @@ router.delete('/devices/:id', checkAuth, async function (req, res) {
     });
     res.send({ success: true });
   } catch (err) {
-    console.error(`/devices/${id}`, deviceId, req.query, err);
+    console.error(`jwt:/devices/${id}`, deviceId, req.query, err);
     res.status(500).send({ error: err.message });
   }
 });
 
-router.get('/stats', checkAuth, async function (req, res) {
+router.get('/stats', checkAuth, async (req, res) => {
   try {
     const stats = await getStats();
     res.send(stats);
   } catch (err) {
-    console.error('/stats', err);
+    console.error('jwt:/stats', err);
     res.status(500).send({ error: err.message });
   }
 });
 
-router.get('/locations/latest', checkAuth, async function (req, res) {
+router.get('/locations/latest', checkAuth, async (req, res) => {
   const { deviceId, org } = req.jwt;
   const device = await getDevice({ id: deviceId });
   console.info(
-    'locations:latest'.green,
+    'jwt:locations:latest'.green,
     'org:name'.green, org,
     'device:id'.green, deviceId,
     JSON.stringify(req.query)
   );
   try {
-    const latest = await getLatestLocation({
-      device_id: deviceId,
-      company_id: device.company_id,
+    const where = {
+      device_id: +deviceId,
+    };
 
-    });
+    if (filterByOrg) {
+      where.company_id = device.company_id;
+    }
+    const latest = await getLatestLocation(where);
     res.send(latest);
   } catch (err) {
-    console.error('/locations/latest', req.query, err);
+    console.error('jwt:/locations/latest', req.query, err);
     res.status(500).send({ error: err.message });
   }
 });
 
-/**
- * GET /locations
- */
-router.get('/locations', checkAuth, async function (req, res) {
+router.get('/locations', checkAuth, async (req, res) => {
   const { deviceId, org } = req.jwt;
-  console.info(
-    'locations:get'.green,
-    'org:name'.green, org,
-    'device:id'.green, deviceId,
-    JSON.stringify(req.query)
-  );
+  const where = {};
+  const { params } = req;
   const device = await getDevice({ id: deviceId });
   const {
     end_date: endDate,
     start_date: startDate,
-  } = req.params;
+    limit = 1000,
+  } = params;
+
+  if (startDate && endDate) {
+    where.recorded_at = { [Op.between]: [startDate, endDate] };
+  }
+  where.device_id = +deviceId;
+  if (filterByOrg) {
+    where.company_id = device.company_id;
+  }
+  console.info(
+    'jwt:locations:get'.green,
+    'org:name'.green, org,
+    'device:id'.green, deviceId,
+    JSON.stringify(req.query),
+    JSON.stringify(where),
+  );
   try {
-    const locations = await getLocations({
-      start_date: startDate,
-      end_date: endDate,
-      company_id: device.company_id,
-    });
+    const locations = await getLocations({ where, limit });
     res.send(locations);
   } catch (err) {
-    console.error('/locations', req.query, err);
+    console.error('jwt:/locations', req.query, err);
     res.status(500).send({ error: err.message });
   }
 });
 
-/**
- * POST /locations
- */
-router.post('/locations', checkAuth, async function (req, res) {
+router.post('/locations', checkAuth, async (req, res) => {
   const { deviceId, org } = req.jwt;
   console.info(
-    'locations:post'.green,
+    'jwt:locations:post'.green,
     'org:name'.green, org,
     'device:id'.green, deviceId
   );
@@ -248,7 +250,7 @@ router.post('/locations', checkAuth, async function (req, res) {
 
   // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
   if (device == null) {
-    console.error('Device ID %s not found.  Was it deleted from dashboard?'.red, deviceId);
+    console.error('jwt:Device ID %s not found'.red, deviceId);
     return res.status(410).send({ error: 'DEVICE_ID_NOT_FOUND', background_geolocation: ['stop'] });
   }
 
@@ -273,19 +275,16 @@ router.post('/locations', checkAuth, async function (req, res) {
     } else if (err instanceof RegistrationRequiredError) {
       return res.status(406).send({ error: err.toString() });
     }
-    console.error('POST /locations', body, err);
+    console.error('POST jwt:/locations', body, err);
     res.status(500).send({ error: err.message });
   }
 });
 
-/**
- * POST /locations
- */
-router.post('/locations/:company_token', checkAuth, async function (req, res) {
+router.post('/locations/:company_token', checkAuth, async (req, res) => {
   const { deviceId, org } = req.jwt;
 
   console.info(
-    'locations:post'.green,
+    'jwt:locations:post'.green,
     'org:name'.green, org,
     'device:id'.green, deviceId
   );
@@ -314,20 +313,20 @@ router.post('/locations/:company_token', checkAuth, async function (req, res) {
     if (err instanceof AccessDeniedError) {
       return res.status(403).send({ error: err.toString() });
     }
-    console.error(`POST /locations${device.company_token}`, err);
+    console.error(`POST jwt:/locations${device.company_token}`, err);
     res.status(500).send({ error: err.message });
   }
 });
 
-router.delete('/locations', checkAuth, async function (req, res) {
+router.delete('/locations', checkAuth, async (req, res) => {
   try {
     const { deviceId, org } = req.jwt;
 
     console.info(
-      'locations:delete'.green,
+      'jwt:locations:delete'.green,
       'org:name'.green, org,
       'device:id'.green, deviceId,
-      JSON.stringify(req.query)
+      JSON.stringify(req.query),
     );
 
     const device = await getDevice({ id: deviceId });
@@ -335,16 +334,21 @@ router.delete('/locations', checkAuth, async function (req, res) {
       start_date: startDate,
       end_date: endDate,
     } = req.query;
+    const where = {
+      device_id: deviceId,
+    };
 
-    await deleteLocations({
-      companyId: device.company_id,
-      deviceId,
-      end_date: endDate,
-      start_date: startDate,
-    });
+    if (filterByOrg) {
+      where.company_id = device.company_id;
+    }
+    if (startDate && endDate) {
+      where.recorded_at = { [Op.between]: [startDate, endDate] };
+    }
+
+    await deleteLocations(where);
     res.send({ success: true });
   } catch (err) {
-    console.info('DELETE /locations', req.query, err);
+    console.info('DELETE jwt:/locations', req.query, err);
     res.status(500).send({ error: err.message });
   }
 });

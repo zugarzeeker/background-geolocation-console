@@ -107,7 +107,7 @@ describe('jwt api', () => {
   });
 
   describe('locations', () => {
-    test('/locations/latest', async () => {
+    test('/locations/latest?device_id=373&company_id=59', async () => {
       const res = await chai.request(server)
         .get('/api/locations/latest')
         .set('Authorization', 'Bearer ' + token);

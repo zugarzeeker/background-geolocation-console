@@ -5,26 +5,21 @@ import DeviceModel from '../database/DeviceModel';
 import LocationModel from '../database/LocationModel';
 import {
   checkCompany,
-  filterByCompany,
 } from '../libs/utils';
 
-export async function getDevice ({ id }) {
-  const whereConditions = { id };
+export const getDevice = async ({ id }) => {
+  const where = { id };
   const result = await DeviceModel.findOne({
-    where: whereConditions,
+    where,
     attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token'],
     raw: true,
   });
   return result;
 }
 
-export async function getDevices (params) {
-  const whereConditions = {};
-  if (filterByCompany) {
-    params.company_id && (whereConditions.company_id = +params.company_id);
-  }
+export const getDevices = async (where) => {
   const result = await DeviceModel.findAll({
-    where: whereConditions,
+    where,
     attributes: ['id', 'device_id', 'device_model', 'company_id', 'company_token', 'framework'],
     order: [['updated_at', 'DESC NULLS LAST'], ['created_at', 'DESC NULLS LAST']],
     raw: true,
@@ -32,11 +27,11 @@ export async function getDevices (params) {
   return result;
 }
 
-export async function deleteDevice ({
+export const deleteDevice = async ({
   id: deviceId,
   start_date: startDate,
   end_date: endDate,
-}) {
+}) => {
   const whereByDevice = {
     device_id: deviceId,
   };

@@ -1,4 +1,3 @@
-import { Op } from 'sequelize';
 import Promise from 'bluebird';
 import CompanyModel from '../database/CompanyModel';
 import DeviceModel from '../database/DeviceModel';
@@ -6,7 +5,6 @@ import LocationModel from '../database/LocationModel';
 import { findOrCreate } from './Device';
 import {
   AccessDeniedError,
-  filterByCompany,
   hydrate,
   isDeniedCompany,
   isDeniedDevice,
@@ -15,7 +13,7 @@ import {
 
 const include = [{ model: DeviceModel, as: 'device' }];
 
-export async function getStats () {
+export const getStats = async () => {
   const minDate = await LocationModel.min('created_at');
   const maxDate = await LocationModel.max('created_at');
   const total = await LocationModel.count();
@@ -24,23 +22,13 @@ export async function getStats () {
     maxDate,
     total,
   };
-}
+};
 
-export async function getLocations (params) {
-  const whereConditions = {};
-  if (params.start_date && params.end_date) {
-    whereConditions.recorded_at = { [Op.between]: [new Date(params.start_date), new Date(params.end_date)] };
-  }
-
-  params.device_id && (whereConditions.device_id = +params.device_id);
-  if (filterByCompany) {
-    params.company_id && (whereConditions.company_id = +params.company_id);
-  }
-
+export const getLocations = async ({ where, limit }) => {
   const rows = await LocationModel.findAll({
-    where: whereConditions,
+    where,
     order: [['recorded_at', 'DESC NULLS LAST']],
-    limit: params.limit,
+    limit,
     include,
   });
 
@@ -48,23 +36,17 @@ export async function getLocations (params) {
   return locations;
 }
 
-export async function getLatestLocation (params) {
-  var whereConditions = {};
-  params.device_id && (whereConditions.device_id = +params.device_id);
-  if (filterByCompany) {
-    params.companyId && (whereConditions.company_id = +params.companyId);
-    params.company_id && (whereConditions.company_id = +params.company_id);
-  }
+export const getLatestLocation = async (where) => {
   const row = await LocationModel.findOne({
-    where: whereConditions,
+    where,
     order: [['recorded_at', 'DESC NULLS LAST']],
     include,
   });
   const result = row ? hydrate(row) : null;
   return result;
-}
+};
 
-export async function createLocation (params, device = {}) {
+export const createLocation = async (params, device = {}) => {
   if (Array.isArray(params)) {
     for (let location of params) {
       try {
@@ -130,33 +112,20 @@ export async function createLocation (params, device = {}) {
       device_id: currentDevice.id,
     });
   }
-}
+};
 
-export async function deleteLocations (params) {
-  const whereConditions = {};
-  const verify = {};
-  const companyId = params && (params.companyId || params.company_id);
-  const deviceId = params && (params.deviceId || params.device_id);
+export const deleteLocations = async (where) => {
+  const verify = { ...where };
 
-  if (filterByCompany && !!companyId) {
-    whereConditions.company_id = +companyId;
-    verify.company_id = +companyId;
-  }
-  if (params && deviceId) {
-    whereConditions.device_id = +deviceId;
-    verify.device_id = +deviceId;
-  }
-  if (params && params.start_date && params.end_date) {
-    whereConditions.recorded_at = { $between: [params.start_date, params.end_date] };
-  }
+  delete verify.recorded_at;
 
-  if (!Object.keys(whereConditions).length) {
+  if (!Object.keys(where).length) {
     throw new Error('Missing some location deletion constraints');
   }
 
-  await LocationModel.destroy({ where: whereConditions });
+  await LocationModel.destroy({ where: where });
 
-  if (params.deviceId) {
+  if (where.device_id) {
     const locationsCount = await LocationModel.count({
       where: verify,
     });
@@ -165,7 +134,7 @@ export async function deleteLocations (params) {
         where: { id: verify.device_id },
       });
     }
-  } else if (companyId) {
+  } else if (where.company_id) {
     const devices = await LocationModel.findAll({
       attributes: ['company_id', 'device_id'],
       where: verify,

@@ -47,7 +47,7 @@ describe('site api', () => {
   describe('locations', () => {
     test('/locations/latest', async () => {
       const res = await chai.request(server)
-        .get('/api/site/locations/latest?company_token=test');
+        .get('/api/site/locations/latest?device_id=373&company_id=59');
       expect(res).have.status(200);
       expect(res).to.be.json;
     });
