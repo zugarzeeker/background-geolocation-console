@@ -56,8 +56,10 @@ export const transfer = async () => {
       const response = await locsRef.get();
       const locs = toRows(response);
       const locations = await LocationModel.findAll({
-        where: { device_id: dev.id },
-        id: { [Op.notIn]: locs.map(loc => loc.id) },
+        where: {
+          device_id: dev.id,
+          id: { [Op.notIn]: locs.map(loc => loc.id) },
+        },
         order: [['recorded_at', 'desc']],
         raw: true,
       });
