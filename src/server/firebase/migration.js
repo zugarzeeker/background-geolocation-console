@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Op } from 'sequelize';
 import Promise from 'bluebird';
 
@@ -17,7 +18,7 @@ import { firebaseOperationLimit } from '../config';
 const checkLimit = async (counter, batch) => {
   if (
     firebaseOperationLimit > 0 &&
-    (counter + 1) > firebaseOperationLimit
+    (counter + 1) >= firebaseOperationLimit
   ) {
     try {
       await batch.commit();
@@ -58,7 +59,11 @@ export const transfer = async () => {
       const locations = await LocationModel.findAll({
         where: {
           device_id: dev.id,
-          id: { [Op.notIn]: locs.map(loc => loc.id) },
+          id: {
+            [Op.notIn]: locs
+              .map(loc => +loc.id)
+              .filter(Boolean),
+          },
         },
         order: [['recorded_at', 'desc']],
         raw: true,
@@ -74,6 +79,19 @@ export const transfer = async () => {
     });
   });
   await batch.commit();
+  return counter < firebaseOperationLimit;
+};
+
+export const migrate = async () => {
+  const hasNoTail = await transfer();
+  if (!hasNoTail) {
+    try {
+      return migrate();
+    } catch (e) {
+      console.error('migrate', e);
+    }
+  }
+  return true;
 };
 
 export default async ({ uuid, org }) => {

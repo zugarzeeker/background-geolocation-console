@@ -271,12 +271,11 @@ router.get('/locations', checkAuth(verify), async (req, res) => {
  * POST /locations
  */
 router.post('/locations', checkAuth(verify), async (req, res) => {
-  const { org, deviceId } = req.jwt;
+  const { org, uuid } = req.jwt;
   const { body } = req;
   const data = isEncryptedRequest(req)
     ? decrypt(body.toString())
     : body;
-  const device = await getDevice({ id: deviceId, org });
   // eslint-disable-next-line no-console
   console.info(
     'v3',
@@ -284,8 +283,9 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
     'org:name'.green,
     org,
     'device:id'.green,
-    device.device_id,
+    uuid,
   );
+  const device = await getDevice({ device_id: uuid, org });
 
   // Can happen if Device is deleted from Dashboard but a JWT is still posting locations for it.
   if (!device) {
