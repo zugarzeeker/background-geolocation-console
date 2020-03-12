@@ -134,13 +134,14 @@ export async function createLocations(
 
 export async function create(
   params,
+  org,
 ) {
   if (Array.isArray(params)) {
     return Promise.reduce(
       params,
       async (p, pp) => {
         try {
-          await create(pp);
+          await create(pp, org);
         } catch (e) {
           console.error('v1:create', e);
           throw e;
@@ -151,7 +152,7 @@ export async function create(
   }
 
   const {
-    company_token: token = 'UNKNOWN',
+    company_token: token = org || 'UNKNOWN',
     location: list = [],
     device = { model: 'UNKNOWN', uuid: 'UNKNOWN' },
   } = params;

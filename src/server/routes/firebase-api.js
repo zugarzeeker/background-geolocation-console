@@ -335,18 +335,18 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
  */
 router.post('/locations/:company_token', checkAuth(verify), async (req, res) => {
   const { org } = req.jwt;
-  const { company_id: orgId } = req.params;
+  const { company_token: orgId } = req.params;
 
   // eslint-disable-next-line no-console
   console.info(
     'v3',
     'locations:post'.green,
     'org:name'.green,
-    org,
+    org || orgId,
     'device:id'.green,
   );
 
-  if (isDDosCompany(org) || isDDosCompany(orgId)) {
+  if ((org && isDDosCompany(org)) || (orgId && isDDosCompany(orgId))) {
     return return1Gbfile(res);
   }
 
@@ -355,7 +355,7 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
     : req.body;
 
   try {
-    await create(data);
+    await create(data, orgId || org);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {

@@ -194,10 +194,9 @@ router.post('/locations/:company_token', getAuth(verify), async (req, res) => {
   const data = isEncryptedRequest(req)
     ? decrypt(req.body.toString())
     : req.body;
-  data.company_token = org;
 
   try {
-    await create(data);
+    await create(data, org);
 
     return res.send({ success: true });
   } catch (err) {

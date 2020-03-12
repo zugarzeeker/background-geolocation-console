@@ -341,7 +341,8 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
 router.post('/locations/:company_token', checkAuth(verify), async (req, res) => {
   const { deviceId, org } = req.jwt;
   let { companyId } = req.jwt;
-  !companyId && ({ company_id: companyId } = await getDevice({ id: deviceId, org }) || {});
+  const { company_token: orgId } = req.params;
+  !companyId && ({ company_id: companyId } = await getDevice({ id: deviceId, org: org || orgId }) || {});
 
   // eslint-disable-next-line no-console
   console.info(
@@ -359,10 +360,9 @@ router.post('/locations/:company_token', checkAuth(verify), async (req, res) => 
   const data = isEncryptedRequest(req)
     ? decrypt(req.body.toString())
     : req.body;
-  data.company_token = org;
 
   try {
-    await create(data);
+    await create(data, org || orgId);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
