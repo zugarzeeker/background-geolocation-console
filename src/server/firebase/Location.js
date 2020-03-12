@@ -86,11 +86,9 @@ export async function getLatestLocation(params, isAdmin) {
 }
 
 
-export async function createLocation(location, deviceInfo, org, batch) {
+export async function createLocation(location, device, org, batch) {
   const now = new Date();
-  const { uuid: deviceId } = deviceInfo;
-
-  const currentDevice = await findOrCreate(org, { ...deviceInfo });
+  const { uuid: deviceId } = device;
 
   console.info(
     'v3:location:create'.green,
@@ -98,7 +96,7 @@ export async function createLocation(location, deviceInfo, org, batch) {
     org,
     'org'.green,
     'device:id'.green,
-    currentDevice.device_id,
+    device.device_id,
   );
 
   const orgRef = firestore
@@ -156,13 +154,13 @@ export async function createLocations(
   await batch.commit();
 }
 
-export async function create(params) {
+export async function create(params, org) {
   if (Array.isArray(params)) {
     return Promise.reduce(
       params,
       async (p, pp) => {
         try {
-          await create(pp);
+          await create(pp, org);
         } catch (e) {
           console.error('v3:create', e);
           throw e;
@@ -173,10 +171,11 @@ export async function create(params) {
   }
 
   const {
-    company_token: token = 'UNKNOWN',
+    company_token: token = org || 'UNKNOWN',
     location: list = [],
-    device = { model: 'UNKNOWN', uuid: 'UNKNOWN' },
+    device: deviceInfo = { model: 'UNKNOWN', uuid: 'UNKNOWN' },
   } = params;
+  const device = await findOrCreate(token, { ...deviceInfo });
   const locations = Array.isArray(list)
     ? list
     : (

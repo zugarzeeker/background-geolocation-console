@@ -75,9 +75,8 @@ export async function getLatestLocation(params, isAdmin) {
   return result;
 }
 
-export async function createLocation(location, deviceInfo, org) {
+export async function createLocation(location, device, org) {
   const now = new Date();
-  const device = await findOrCreate(org, { ...deviceInfo });
 
   CompanyModel.update(
     { updated_at: now },
@@ -95,7 +94,7 @@ export async function createLocation(location, deviceInfo, org) {
     'org:id'.green,
     device.company_id,
     'device:id'.green,
-    device.uuid,
+    device.device_id,
   );
   const row = {
     latitude: location.coords.latitude,
@@ -154,8 +153,13 @@ export async function create(
   const {
     company_token: token = org || 'UNKNOWN',
     location: list = [],
-    device = { model: 'UNKNOWN', uuid: 'UNKNOWN' },
+    device: deviceInfo = { model: 'UNKNOWN', uuid: 'UNKNOWN' },
   } = params;
+  const device = await findOrCreate(
+    org,
+    { device_id: deviceInfo.uuid },
+  );
+  console.log('deviceInfo', deviceInfo, device);
   const locations = Array.isArray(list)
     ? list
     : (

@@ -168,7 +168,7 @@ router.post('/locations', getAuth(verify), async (req, res) => {
   }
 
   try {
-    await create(data);
+    await create(data, org);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
@@ -225,7 +225,6 @@ router.delete('/locations', checkAuth(verify), async (req, res) => {
     );
 
     res.send({ success: true });
-    res.status(500).send({ error: 'Something failed!' });
   } catch (err) {
     console.info('v1', 'delete /locations', JSON.stringify(req.query), err);
     res.status(500).send({ error: 'Something failed!' });

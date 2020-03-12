@@ -315,7 +315,7 @@ router.post('/locations', checkAuth(verify), async (req, res) => {
   }
 
   try {
-    await create(data);
+    await create(data, org);
     return res.send({ success: true });
   } catch (err) {
     if (err instanceof AccessDeniedError) {
